@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lean by Stephan — TDEE Calculator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        fontFamily: { sans: ['Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'] },
+        colors: {
+          brand: {
+            50: '#ecfdf5', 100: '#d1fae5', 200: '#a7f3d0', 300: '#6ee7b7',
+            400: '#34d399', 500: '#10b981', 600: '#059669', 700: '#047857',
+          },
+        },
+      },
+    },
+  }
+</script>
+<style>
+  body { font-family: 'Inter', ui-sans-serif, system-ui, sans-serif; }
+  input[type=number]::-webkit-inner-spin-button,
+  input[type=number]::-webkit-outer-spin-button { opacity: 1; }
+  .step { animation: fadein .25s ease; }
+  @keyframes fadein { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+  .field-input {
+    width: 100%; border: 1px solid #e2e8f0; border-radius: .75rem; padding: .65rem .9rem;
+    font-size: .95rem; color: #0f172a; transition: border-color .15s, box-shadow .15s;
+  }
+  .field-input:focus { outline: none; border-color: #10b981; box-shadow: 0 0 0 3px rgba(16,185,129,.15); }
+  .choice-btn {
+    border: 1.5px solid #e2e8f0; border-radius: .75rem; padding: .7rem .5rem; text-align: center;
+    cursor: pointer; transition: all .15s; font-size: .875rem; color: #334155; background: white;
+  }
+  .choice-btn:hover { border-color: #a7f3d0; }
+  .choice-btn.active { border-color: #10b981; background: #ecfdf5; color: #047857; font-weight: 600; }
+  .activity-option {
+    border: 1.5px solid #e2e8f0; border-radius: .75rem; padding: .85rem 1rem;
+    cursor: pointer; transition: all .15s; background: white;
+  }
+  .activity-option:hover { border-color: #a7f3d0; }
+  .activity-option.active { border-color: #10b981; background: #ecfdf5; }
+  .activity-title { font-weight: 600; font-size: .875rem; color: #0f172a; }
+  .activity-option.active .activity-title { color: #047857; }
+  .activity-desc { font-size: .75rem; color: #64748b; margin-top: .2rem; line-height: 1.45; }
+</style>
+</head>
+<body class="bg-slate-50 text-slate-900 min-h-screen">
+
+  <div class="max-w-xl mx-auto px-5 py-12 sm:py-16">
+
+    <!-- Header -->
+    <div class="text-center mb-8">
+      <p class="text-[13px] font-semibold tracking-tight text-brand-600 mb-2">lean<span class="text-slate-400">.by.stephan</span></p>
+      <h1 class="text-[26px] font-bold tracking-tight">TDEE Calculator</h1>
+      <p class="mt-1.5 text-[13.5px] text-slate-500">Find your daily calorie target and a realistic timeline to reach your goal.</p>
+    </div>
+
+    <!-- Stepper -->
+    <div class="flex items-center gap-2 mb-6" id="stepper">
+      <div class="step-dot flex-1 h-1.5 rounded-full bg-slate-900" data-step="1"></div>
+      <div class="step-dot flex-1 h-1.5 rounded-full bg-slate-200" data-step="2"></div>
+      <div class="step-dot flex-1 h-1.5 rounded-full bg-slate-200" data-step="3"></div>
+      <div class="step-dot flex-1 h-1.5 rounded-full bg-slate-200" data-step="4"></div>
+    </div>
+    <p class="text-center text-[12px] text-slate-400 mb-6" id="step-label">Step 1 of 4 — About you</p>
+
+    <!-- Card -->
+    <div class="bg-white border border-slate-200 rounded-2xl shadow-sm p-6 sm:p-8">
+
+      <!-- STEP 1: About you -->
+      <div class="step" id="step-1">
+        <h2 class="text-[17px] font-semibold mb-5">About you</h2>
+
+        <div class="mb-5">
+          <label class="block text-[13px] font-medium text-slate-600 mb-2">Sex</label>
+          <div class="grid grid-cols-2 gap-2">
+            <div class="choice-btn" data-group="sex" data-value="M">Male</div>
+            <div class="choice-btn" data-group="sex" data-value="F">Female</div>
+          </div>
+        </div>
+
+        <div class="mb-5">
+          <label class="block text-[13px] font-medium text-slate-600 mb-2">Age</label>
+          <input type="number" id="age" class="field-input" placeholder="e.g. 32" min="13" max="100">
+        </div>
+
+        <div class="mb-5">
+          <label class="block text-[13px] font-medium text-slate-600 mb-2">Units</label>
+          <div class="grid grid-cols-2 gap-2">
+            <div class="choice-btn active" data-group="units" data-value="metric">Metric (kg/cm)</div>
+            <div class="choice-btn" data-group="units" data-value="imperial">Imperial (lb/in)</div>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div id="height-metric-wrap">
+            <label class="block text-[13px] font-medium text-slate-600 mb-2">Height (cm)</label>
+            <input type="number" id="height-cm" class="field-input" placeholder="e.g. 178">
+          </div>
+          <div id="height-imperial-wrap" class="hidden">
+            <label class="block text-[13px] font-medium text-slate-600 mb-2">Height (in)</label>
+            <input type="number" id="height-in" class="field-input" placeholder="e.g. 70">
+          </div>
+          <div id="weight-metric-wrap">
+            <label class="block text-[13px] font-medium text-slate-600 mb-2">Weight (kg)</label>
+            <input type="number" id="weight-kg" class="field-input" placeholder="e.g. 75" step="0.1">
+          </div>
+          <div id="weight-imperial-wrap" class="hidden">
+            <label class="block text-[13px] font-medium text-slate-600 mb-2">Weight (lb)</label>
+            <input type="number" id="weight-lb" class="field-input" placeholder="e.g. 165" step="0.1">
+          </div>
+        </div>
+        <p class="mt-3 text-[12px] text-red-500 hidden" id="error-1"></p>
+      </div>
+
+      <!-- STEP 2: Body composition -->
+      <div class="step hidden" id="step-2">
+        <h2 class="text-[17px] font-semibold mb-1.5">Body composition</h2>
+        <p class="text-[12.5px] text-slate-500 mb-5">Pick the photo that looks closest to you now, and the one you're aiming for.</p>
+
+        <div class="mb-6">
+          <label class="block text-[19px] font-bold text-slate-900 mb-3">Current body fat %</label>
+          <div class="grid grid-cols-4 gap-2" id="bf-current-grid"></div>
+        </div>
+
+        <div class="mb-2">
+          <label class="block text-[19px] font-bold text-slate-900 mb-3">Goal body fat %</label>
+          <div class="grid grid-cols-4 gap-2" id="bf-goal-grid"></div>
+        </div>
+        <p class="mt-3 text-[12px] text-red-500 hidden" id="error-2"></p>
+      </div>
+
+      <!-- STEP 3: Activity level -->
+      <div class="step hidden" id="step-3">
+        <h2 class="text-[17px] font-semibold mb-1.5">Activity level</h2>
+        <p class="text-[12.5px] text-slate-500 mb-5">Pick the description that best matches your typical week.</p>
+
+        <div class="space-y-2.5" id="activity-group">
+          <div class="activity-option" data-value="0.15">
+            <p class="activity-title">Sedentary</p>
+            <p class="activity-desc">I don't actively exercise or go on intentional walks. I mostly drive and use elevators/escalators.</p>
+          </div>
+          <div class="activity-option" data-value="0.2">
+            <p class="activity-title">Lightly Active</p>
+            <p class="activity-desc">I go to the gym or a class once or twice a week and hit 10K steps on most days.</p>
+          </div>
+          <div class="activity-option" data-value="0.25">
+            <p class="activity-title">Moderately Active</p>
+            <p class="activity-desc">I go to the gym or a class 2-3 times per week and hit 10K or more steps every day.</p>
+          </div>
+          <div class="activity-option" data-value="0.3">
+            <p class="activity-title">Active</p>
+            <p class="activity-desc">I exercise 4-5 days per week in a structured way and exceed 10K steps daily.</p>
+          </div>
+          <div class="activity-option" data-value="0.35">
+            <p class="activity-title">Very Active</p>
+            <p class="activity-desc">I exercise 5 or more days per week in a structured way, hit or exceed 15K steps daily and have a physically demanding job.</p>
+          </div>
+          <div class="activity-option" data-value="0.4">
+            <p class="activity-title">Highly Active</p>
+            <p class="activity-desc">I work out every day in a structured manner, hit or exceed 15K steps daily.</p>
+          </div>
+        </div>
+        <p class="mt-3 text-[12px] text-red-500 hidden" id="error-3"></p>
+      </div>
+
+      <!-- STEP 4: Results -->
+      <div class="step hidden" id="step-4">
+        <div class="grid grid-cols-3 gap-3 mb-4">
+          <div class="bg-slate-50 rounded-xl p-3 text-center">
+            <p class="text-[11px] text-slate-500 mb-1">BMR</p>
+            <p class="text-[16px] font-bold" id="res-bmr">—</p>
+          </div>
+          <div class="bg-slate-50 rounded-xl p-3 text-center">
+            <p class="text-[11px] text-slate-500 mb-1">TDEE</p>
+            <p class="text-[16px] font-bold" id="res-tdee">—</p>
+          </div>
+          <div class="bg-slate-50 rounded-xl p-3 text-center">
+            <p class="text-[11px] text-slate-500 mb-1">Protein / day</p>
+            <p class="text-[16px] font-bold" id="res-protein">—</p>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3 mb-6">
+          <div class="bg-slate-50 rounded-xl p-3 text-center">
+            <p class="text-[11px] text-slate-500 mb-1">Goal weight</p>
+            <p class="text-[16px] font-bold" id="res-goal-weight">—</p>
+          </div>
+          <div class="bg-slate-50 rounded-xl p-3 text-center">
+            <p class="text-[11px] text-slate-500 mb-1">Fat to lose</p>
+            <p class="text-[16px] font-bold" id="res-fat-loss">—</p>
+          </div>
+        </div>
+
+        <p class="text-[13px] font-medium text-slate-600 mb-2.5">Choose your pace</p>
+        <div class="space-y-3" id="deficit-cards"></div>
+
+        <button id="btn-restart" class="w-full mt-6 border border-slate-200 rounded-full py-2.5 text-[13.5px] font-medium text-slate-600 hover:bg-slate-50 transition-colors">Start over</button>
+      </div>
+
+      <!-- Nav -->
+      <div class="flex items-center justify-between mt-8" id="nav-buttons">
+        <button id="btn-back" class="text-[13.5px] font-medium text-slate-500 px-4 py-2.5 rounded-full hover:bg-slate-50 transition-colors invisible">Back</button>
+        <button id="btn-next" class="text-[13.5px] font-medium text-white bg-slate-900 px-6 py-2.5 rounded-full hover:bg-slate-800 transition-colors">Next</button>
+      </div>
+    </div>
+
+    <p class="text-center text-[11.5px] text-slate-400 mt-6">This tool provides estimates only and is not medical advice.</p>
+  </div>
+
+<script>
+  const state = { sex: null, age: null, units: 'metric', heightCm: null, heightIn: null, weightKg: null, weightLb: null,
+    bodyFatCurrent: null, bodyFatGoal: null, activityFactor: null };
+  let currentStep = 1;
+  const totalSteps = 4;
+  const stepLabels = ['About you', 'Body composition', 'Activity level', 'Your results'];
+  const DEFICIT_LEVELS = [20, 25, 30];
+
+  // choice-btn group handling
+  document.querySelectorAll('.choice-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const group = btn.dataset.group;
+      document.querySelectorAll(`.choice-btn[data-group="${group}"]`).forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      const val = btn.dataset.value;
+      if (group === 'sex') {
+        if (state.sex !== val) { state.bodyFatCurrent = null; state.bodyFatGoal = null; }
+        state.sex = val;
+      }
+      if (group === 'units') { state.units = val; toggleUnits(); }
+    });
+  });
+
+  // activity-level card handling
+  document.querySelectorAll('.activity-option').forEach(opt => {
+    opt.addEventListener('click', () => {
+      document.querySelectorAll('.activity-option').forEach(o => o.classList.remove('active'));
+      opt.classList.add('active');
+      state.activityFactor = parseFloat(opt.dataset.value);
+    });
+  });
+
+  function toggleUnits() {
+    const metric = state.units === 'metric';
+    document.getElementById('height-metric-wrap').classList.toggle('hidden', !metric);
+    document.getElementById('height-imperial-wrap').classList.toggle('hidden', metric);
+    document.getElementById('weight-metric-wrap').classList.toggle('hidden', !metric);
+    document.getElementById('weight-imperial-wrap').classList.toggle('hidden', metric);
+  }
+
+  function showError(step, msg) {
+    const el = document.getElementById(`error-${step}`);
+    if (!el) return;
+    el.textContent = msg;
+    el.classList.toggle('hidden', !msg);
+  }
+
+  function readStepInputs() {
+    state.age = parseFloat(document.getElementById('age').value) || null;
+    state.heightCm = parseFloat(document.getElementById('height-cm').value) || null;
+    state.heightIn = parseFloat(document.getElementById('height-in').value) || null;
+    state.weightKg = parseFloat(document.getElementById('weight-kg').value) || null;
+    state.weightLb = parseFloat(document.getElementById('weight-lb').value) || null;
+  }
+
+  // Body fat reference photos — filenames follow imgs/LBS_{M|F}_{value}.jpg
+  const bfOptions = { M: [10, 15, 20, 25, 30, 35, 40, 45], F: [10, 15, 20, 25, 30, 35, 40, 45] };
+
+  function renderBodyFatGrid(containerId, group, selectedValue) {
+    const container = document.getElementById(containerId);
+    const sex = state.sex || 'M';
+    const options = bfOptions[sex];
+    container.innerHTML = options.map(v => `
+      <div class="bf-option cursor-pointer" data-group="${group}" data-value="${v}">
+        <img src="imgs/LBS_${sex}_${v}.jpg" alt="${v}% body fat reference"
+             class="w-full aspect-[3/4] object-cover rounded-lg border-2 ${v === selectedValue ? 'border-brand-500 ring-2 ring-brand-300' : 'border-transparent'}">
+        <p class="text-center text-[11px] font-medium ${v === selectedValue ? 'text-brand-600' : 'text-slate-500'} mt-1">${v}%</p>
+      </div>
+    `).join('');
+    container.querySelectorAll('.bf-option').forEach(opt => {
+      opt.addEventListener('click', () => {
+        const val = parseFloat(opt.dataset.value);
+        if (group === 'bf-current') state.bodyFatCurrent = val;
+        if (group === 'bf-goal') state.bodyFatGoal = val;
+        renderBodyFatGrid(containerId, group, val);
+      });
+    });
+  }
+
+  function renderBodyFatStep() {
+    renderBodyFatGrid('bf-current-grid', 'bf-current', state.bodyFatCurrent);
+    renderBodyFatGrid('bf-goal-grid', 'bf-goal', state.bodyFatGoal);
+  }
+
+  function validateStep(step) {
+    readStepInputs();
+    showError(step, '');
+    if (step === 1) {
+      if (!state.sex) return showError(1, 'Select your sex to continue.'), false;
+      if (!state.age || state.age < 13 || state.age > 100) return showError(1, 'Enter a valid age (13–100).'), false;
+      if (state.units === 'metric') {
+        if (!state.heightCm || state.heightCm < 100 || state.heightCm > 250) return showError(1, 'Enter a valid height in cm.'), false;
+        if (!state.weightKg || state.weightKg < 30 || state.weightKg > 300) return showError(1, 'Enter a valid weight in kg.'), false;
+      } else {
+        if (!state.heightIn || state.heightIn < 40 || state.heightIn > 100) return showError(1, 'Enter a valid height in inches.'), false;
+        if (!state.weightLb || state.weightLb < 60 || state.weightLb > 660) return showError(1, 'Enter a valid weight in lb.'), false;
+      }
+      return true;
+    }
+    if (step === 2) {
+      if (state.bodyFatCurrent === null) return showError(2, 'Select the photo closest to your current body fat %.'), false;
+      if (state.bodyFatGoal === null) return showError(2, 'Select your goal body fat %.'), false;
+      if (state.bodyFatGoal >= state.bodyFatCurrent) return showError(2, 'Your goal body fat % should be lower than your current body fat %.'), false;
+      return true;
+    }
+    if (step === 3) {
+      if (state.activityFactor === null) return showError(3, 'Select your activity level.'), false;
+      return true;
+    }
+    return true;
+  }
+
+  function getMetricValues() {
+    const heightCm = state.units === 'metric' ? state.heightCm : state.heightIn * 2.54;
+    const weightKg = state.units === 'metric' ? state.weightKg : state.weightLb * 0.453592;
+    return { heightCm, weightKg };
+  }
+
+  function calculateBase() {
+    const { weightKg } = getMetricValues();
+    const lbm = weightKg * (1 - state.bodyFatCurrent / 100);
+    const bmr = 370 + 21.6 * lbm;
+    const tdee = bmr * (1 + state.activityFactor);
+    const proteinGoal = weightKg * 1.6;
+    const goalWeight = lbm / (1 - state.bodyFatGoal / 100);
+    const fatToLoseKg = weightKg - goalWeight;
+    const fatToLoseKcal = fatToLoseKg * 7700;
+    return { weightKg, lbm, bmr, tdee, proteinGoal, goalWeight, fatToLoseKg, fatToLoseKcal };
+  }
+
+  function calculateForDeficit(base, deficitPct) {
+    const calorieDeficit = base.tdee * (deficitPct / 100);
+    const rawTarget = base.tdee - calorieDeficit;
+    let target = Math.round(rawTarget / 50) * 50;
+    const floor = state.sex === 'M' ? 1500 : 1200;
+    let floorApplied = false;
+    if (target < floor) { target = floor; floorApplied = true; }
+
+    // When the floor caps the target, the deficit actually achievable is smaller
+    // than the theoretical one — use the real, sustainable deficit for the timeline
+    // so the projected date isn't over-optimistic.
+    const achievableDeficit = floorApplied ? (base.tdee - target) : calorieDeficit;
+    const daysToGoal = base.fatToLoseKcal / achievableDeficit;
+
+    return { deficitPct, target, floor, floorApplied, daysToGoal };
+  }
+
+  function fmtDate(d) {
+    return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+  }
+
+  function renderResults() {
+    const base = calculateBase();
+    document.getElementById('res-bmr').textContent = Math.round(base.bmr).toLocaleString();
+    document.getElementById('res-tdee').textContent = Math.round(base.tdee).toLocaleString();
+    document.getElementById('res-protein').textContent = Math.ceil(base.proteinGoal) + 'g';
+    document.getElementById('res-goal-weight').textContent = (state.units === 'metric'
+      ? Math.round(base.goalWeight * 10) / 10 + ' kg'
+      : Math.round(base.goalWeight / 0.453592 * 10) / 10 + ' lb');
+    document.getElementById('res-fat-loss').textContent = (state.units === 'metric'
+      ? Math.round(base.fatToLoseKg * 10) / 10 + ' kg'
+      : Math.round(base.fatToLoseKg / 0.453592 * 10) / 10 + ' lb');
+
+    const today = new Date();
+    const results = DEFICIT_LEVELS.map(pct => calculateForDeficit(base, pct));
+
+    // If two or more paces collapse to the same floor-capped target, a single
+    // per-card note reads like a glitch (all three showing the same number) —
+    // add one consolidated note explaining why instead.
+    const floorTargets = results.filter(r => r.floorApplied).map(r => r.target);
+    const collidedTargets = new Set(floorTargets.filter((t, i) => floorTargets.indexOf(t) !== i));
+    const anyCollision = collidedTargets.size > 0;
+
+    const collisionNoteHtml = anyCollision
+      ? `<p class="text-[12px] text-amber-600 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 mb-3">Some paces show the same target because your stats put them all at the safe minimum calorie floor — there's no meaningful difference between them for you.</p>`
+      : '';
+
+    const cardsHtml = results.map(r => {
+      const days = Math.round(r.daysToGoal);
+      const weeks = Math.round(r.daysToGoal / 7);
+      const monthsRaw = Math.round((r.daysToGoal / 30.44) * 2) / 2;
+      const months = monthsRaw % 1 === 0 ? monthsRaw.toString() : monthsRaw.toFixed(1);
+      const goalDate = new Date();
+      goalDate.setDate(today.getDate() + days);
+      const showIndividualNote = r.floorApplied && !anyCollision;
+      return `
+        <div class="border border-slate-200 rounded-xl p-4">
+          <div class="flex items-center justify-between mb-1">
+            <span class="text-[15px] font-bold text-brand-700">${r.deficitPct}% Caloric Deficit</span>
+            <span class="text-[22px] font-extrabold tracking-tight">${Math.round(r.target).toLocaleString()}<span class="text-[12px] font-medium text-slate-400"> kcal/day</span></span>
+          </div>
+          ${showIndividualNote ? `<p class="text-[11px] text-amber-600 mt-1.5">Adjusted to the safe minimum of ${r.floor.toLocaleString()} calories.</p>` : ''}
+          <div class="relative h-1.5 bg-slate-100 rounded-full overflow-hidden mt-3">
+            <div class="absolute inset-y-0 left-0 w-full bg-gradient-to-r from-brand-400 to-brand-600 rounded-full"></div>
+          </div>
+          <div class="flex items-center justify-between mt-2 text-[11.5px] text-slate-500">
+            <span>${fmtDate(today)}</span>
+            <span class="font-semibold text-slate-700">${days} days · ~${weeks} wks · ~${months} mo</span>
+            <span>${fmtDate(goalDate)}</span>
+          </div>
+        </div>
+      `;
+    }).join('');
+    document.getElementById('deficit-cards').innerHTML = collisionNoteHtml + cardsHtml;
+  }
+
+  function updateStepper() {
+    document.querySelectorAll('.step-dot').forEach(dot => {
+      const s = parseInt(dot.dataset.step);
+      dot.classList.toggle('bg-slate-900', s <= currentStep);
+      dot.classList.toggle('bg-slate-200', s > currentStep);
+    });
+    document.getElementById('step-label').textContent = `Step ${currentStep} of ${totalSteps} — ${stepLabels[currentStep - 1]}`;
+  }
+
+  function showStep(n) {
+    document.querySelectorAll('.step').forEach(el => el.classList.add('hidden'));
+    document.getElementById(`step-${n}`).classList.remove('hidden');
+    document.getElementById('btn-back').classList.toggle('invisible', n === 1);
+    const nextBtn = document.getElementById('btn-next');
+    const navButtons = document.getElementById('nav-buttons');
+    if (n === 2) renderBodyFatStep();
+    if (n === totalSteps) {
+      navButtons.classList.add('hidden');
+      renderResults();
+    } else {
+      navButtons.classList.remove('hidden');
+      nextBtn.textContent = n === totalSteps - 1 ? 'See results' : 'Next';
+    }
+    updateStepper();
+  }
+
+  document.getElementById('btn-next').addEventListener('click', () => {
+    if (!validateStep(currentStep)) return;
+    currentStep = Math.min(currentStep + 1, totalSteps);
+    showStep(currentStep);
+  });
+  document.getElementById('btn-back').addEventListener('click', () => {
+    currentStep = Math.max(currentStep - 1, 1);
+    showStep(currentStep);
+  });
+  document.getElementById('btn-restart').addEventListener('click', () => {
+    currentStep = 1;
+    showStep(currentStep);
+  });
+
+  showStep(1);
+</script>
+</body>
+</html>
